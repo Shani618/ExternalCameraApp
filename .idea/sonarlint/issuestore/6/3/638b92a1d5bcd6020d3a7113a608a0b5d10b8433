@@ -1,8 +1,13 @@
 
->kotlin:S125»"Remove this commented out code.(ş¨ñÎ8©éİ™É2
-Gkotlin:S18741"#Deprecated code should not be used.(±İ­Úûÿÿÿÿ8½éİ™É2
-Gkotlin:S1874?"#Deprecated code should not be used.(Öœ‚Óıÿÿÿÿ8½éİ™É2
-Hkotlin:S1874¹"#Deprecated code should not be used.(”õ†Şùÿÿÿÿ8½éİ™É2
-Qkotlin:S6518ä",Replace function call with indexed accessor.(ŸÜï†øÿÿÿÿ8Æéİ™É2
-Lkotlin:S6518·",Replace function call with indexed accessor.(‚šØê8Çéİ™É2
-Qkotlin:S6518Â",Replace function call with indexed accessor.(Ÿöşÿÿÿÿ8Çéİ™É2
+dkotlin:S1128	"Remove this unused import.(…ï££ıÿÿÿÿ8ï©ŸœÉ2J$a0c152bf-6e53-4aa4-b3b3-9faa2bc9a1d4
+_kotlin:S1128"Remove this unused import.(„œÊÖ8ï©ŸœÉ2J$07525ffc-390a-4dee-8c01-016c4d023a4f
+dkotlin:S1128"Remove this unused import.(Ôâôüÿÿÿÿ8ï©ŸœÉ2J$b484d9bb-2233-4fcb-9689-228ce299c20b
+^kotlin:S1128!"Remove this unused import.(Éÿ™H8¶ñÀœÉ2J$1fb44e58-1b67-46a0-9d5d-f6617da01ee7
+mkotlin:S1874?"#Deprecated code should not be used.(±İ­Úûÿÿÿÿ8îğœÉ2J$4a8fc431-cbee-4966-8414-e163535da035
+mkotlin:S1874M"#Deprecated code should not be used.(Öœ‚Óıÿÿÿÿ8îğœÉ2J$57e146aa-1c00-4420-85f8-d4d32ffb99f4
+nkotlin:S1874ğ"#Deprecated code should not be used.(”õ†Şùÿÿÿÿ8ÒÕêœÉ2J$74c73d96-5220-4687-aa73-a07c01c01c25
+kotlin:S3776“"RRefactor this method to reduce its Cognitive Complexity from 22 to the 15 allowed.(çş¿ßşÿÿÿÿ8“îğœÉ2J$f1bddf81-4948-4447-9339-8ea8f8c7ac9a
+–kotlin:S6516^"LReplace explicit functional interface implementation with lambda expression.(¨ÚØøÿÿÿÿ8›îğœÉ2J$d24377d2-82eb-4f72-a98c-3a69fc2e3666
+wkotlin:S6518‡",Replace function call with indexed accessor.(ŸÜï†øÿÿÿÿ8İÕêœÉ2J$7ea6a411-aadd-4846-adc0-aadc1c3ed448
+wkotlin:S6518",Replace function call with indexed accessor.(ŸÜï†øÿÿÿÿ8ŸîğœÉ2J$800a5a81-0ff2-468d-bf39-a85a688b9fa7
+rkotlin:S6518¹",Replace function call with indexed accessor.(šù„Ï8ŸîğœÉ2J$570c4a80-901d-422e-97af-b20ee0be819d

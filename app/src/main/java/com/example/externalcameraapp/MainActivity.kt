@@ -19,11 +19,23 @@ import android.content.Intent
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
+import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.view.Surface
 import android.view.TextureView
 import android.util.Size
 import java.util.concurrent.Executors
+import android.os.Handler
+import android.os.Looper
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraMetadata
+import android.media.ImageReader
+import kotlin.math.abs
+import android.os.Environment
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
     
@@ -31,6 +43,8 @@ class MainActivity : AppCompatActivity() {
         private const val CAMERA_PERMISSION_CODE = 100
         private const val TAG = "MainActivity"
         private const val ACTION_USB_PERMISSION = "com.example.externalcameraapp.USB_PERMISSION"
+        private const val CAPTURE_INTERVAL = 10000L // 10 seconds in milliseconds
+        private const val CAMERA_STABILIZATION_DELAY = 5000L // 5 seconds delay
     }
 
     private lateinit var cameraManager: CameraManager
@@ -39,7 +53,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewFinder: TextureView
     private var captureSession: CameraCaptureSession? = null
     private val cameraExecutor = Executors.newSingleThreadExecutor()
-    private var previewSize: Size = Size(640, 480) // Default size
+    private var previewSize: Size = Size(1920, 1080) // Default size
     
     private val usbReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -71,11 +85,103 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var isCapturing = false
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var imageReader: ImageReader? = null
+    private var isCameraStabilized = false
+    private var previewImageReader: ImageReader? = null
+
+    private val captureRunnable = object : Runnable {
+        override fun run() {
+            if (isCapturing) {
+                captureImage()
+                mainHandler.postDelayed(this, CAPTURE_INTERVAL)
+            }
+        }
+    }
+
+    private fun captureImage() {
+        if (!isCameraStabilized) {
+            Log.d(TAG, "Skipping capture - camera not stabilized")
+            return
+        }
+        
+        try {
+            val reader = imageReader
+            if (reader == null) {
+                Log.e(TAG, "Cannot capture image - ImageReader is null")
+                return
+            }
+
+            val captureBuilder = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+            if (captureBuilder == null) {
+                Log.e(TAG, "Cannot capture image - CaptureRequest.Builder is null")
+                return
+            }
+
+            captureBuilder.apply {
+                addTarget(reader.surface)
+                set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO)
+                set(CaptureRequest.JPEG_ORIENTATION, 0)
+            }
+
+            captureSession?.capture(
+                captureBuilder.build(),
+                object : CameraCaptureSession.CaptureCallback() {
+                    override fun onCaptureCompleted(
+                        session: CameraCaptureSession,
+                        request: CaptureRequest,
+                        result: TotalCaptureResult
+                    ) {
+                        super.onCaptureCompleted(session, request, result)
+                        Log.d(TAG, "Image capture completed at: ${System.currentTimeMillis()}")
+                    }
+
+                    override fun onCaptureFailed(
+                        session: CameraCaptureSession,
+                        request: CaptureRequest,
+                        failure: CaptureFailure
+                    ) {
+                        super.onCaptureFailed(session, request, failure)
+                        Log.e(TAG, "Image capture failed: ${failure.reason}")
+                    }
+                },
+                mainHandler
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error capturing image", e)
+        }
+    }
+
+    private fun startPeriodicCapture() {
+        if (!isCameraStabilized) {
+            Log.d(TAG, "Waiting for camera to stabilize")
+            return
+        }
+        
+        if (cameraDevice == null || imageReader?.surface == null || captureSession == null) {
+            Log.e(TAG, "Cannot start periodic capture - camera not ready")
+            return
+        }
+        
+        isCapturing = true
+        mainHandler.post(captureRunnable)
+        Log.d(TAG, "Started periodic capture")
+    }
+
+    private fun stopPeriodicCapture() {
+        isCapturing = false
+        mainHandler.removeCallbacks(captureRunnable)
+        Log.d(TAG, "Stopped periodic capture")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "onCreate: Starting activity")
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+        
+        // Initialize views first
+        viewFinder = findViewById(R.id.viewFinder)
+        viewFinder.surfaceTextureListener = surfaceTextureListener
         
         // Initialize USB manager
         usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
@@ -91,17 +197,8 @@ class MainActivity : AppCompatActivity() {
         // Check for already connected devices
         checkForExistingUsbDevices()
         
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-
         Log.d(TAG, "onCreate: Checking camera permissions")
-        checkCameraPermission()
-
-        viewFinder = findViewById(R.id.viewFinder)
-        viewFinder.surfaceTextureListener = surfaceTextureListener
+        checkPermissions()
     }
 
     private fun checkForExistingUsbDevices() {
@@ -128,21 +225,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkCameraPermission() {
-        Log.d(TAG, "checkCameraPermission: Checking if camera permission is granted")
+    private fun checkPermissions() {
+        // Check camera permission
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            Log.i(TAG, "checkCameraPermission: Permission not granted, requesting permission")
             ActivityCompat.requestPermissions(
                 this,
-                arrayOf(Manifest.permission.CAMERA),
+                arrayOf(
+                    Manifest.permission.CAMERA,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ),
                 CAMERA_PERMISSION_CODE
             )
         } else {
-            Log.i(TAG, "checkCameraPermission: Permission already granted")
             initializeCamera()
         }
     }
@@ -180,15 +283,75 @@ class MainActivity : AppCompatActivity() {
             var externalCameraId: String? = null
             for (cameraId in cameraList) {
                 val characteristics = cameraManager.getCameraCharacteristics(cameraId)
-                val cameraLocation = characteristics.get(CameraCharacteristics.LENS_FACING)
-                Log.d(TAG, "initializeCamera: Checking camera $cameraId, facing: $cameraLocation")
+                val streamConfigurationMap = characteristics.get(
+                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP
+                )
+                
+                // Initialize ImageReader with supported size
+                streamConfigurationMap?.let { map ->
+                    val outputSizes = map.getOutputSizes(ImageFormat.JPEG)
+                    if (outputSizes.isNotEmpty()) {
+                        // Find highest resolution available
+                        val maxSize = outputSizes.maxByOrNull { it.width * it.height } ?: outputSizes[0]
+                        
+                        // Close any existing ImageReader
+                        imageReader?.close()
+                        // Create new ImageReader with maximum size
+                        imageReader = ImageReader.newInstance(
+                            maxSize.width,
+                            maxSize.height,
+                            ImageFormat.JPEG,
+                            2
+                        ).apply {
+                            setOnImageAvailableListener({ reader ->
+                                val image = reader.acquireLatestImage()
+                                try {
+                                    if (image != null) {
+                                        // Save the image
+                                        val buffer = image.planes[0].buffer
+                                        val bytes = ByteArray(buffer.remaining())
+                                        buffer.get(bytes)
+                                        
+                                        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                                        val fileName = "IMG_$timeStamp.jpg"
+                                        
+                                        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                                        val imageFile = File(downloadsDir, fileName)
+                                        
+                                        try {
+                                            FileOutputStream(imageFile).use { output ->
+                                                output.write(bytes)
+                                            }
+                                            runOnUiThread {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Image saved: $fileName",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                            Log.d(TAG, "Image saved successfully: ${imageFile.absolutePath}")
+                                        } catch (e: Exception) {
+                                            Log.e(TAG, "Error saving image", e)
+                                            runOnUiThread {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Failed to save image",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
+                                    }
+                                } finally {
+                                    image?.close()
+                                }
+                            }, mainHandler)
+                        }
+                        Log.d(TAG, "ImageReader initialized with size: ${maxSize.width}x${maxSize.height}")
+                    }
+                }
+                
                 externalCameraId = cameraId
                 break
-//                if (cameraLocation == CameraCharacteristics.LENS_FACING_EXTERNAL) {
-//                    Log.i(TAG, "initializeCamera: Found external camera with id: $cameraId")
-//                    externalCameraId = cameraId
-//                    break
-//                }
             }
             Log.d(TAG, "initializeCamera: externalCameraId $externalCameraId")
             if (externalCameraId != null) {
@@ -229,7 +392,12 @@ class MainActivity : AppCompatActivity() {
                 CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP
             )
             streamConfigurationMap?.let { map ->
-                previewSize = map.getOutputSizes(SurfaceTexture::class.java)[0]
+                val outputSizes = map.getOutputSizes(SurfaceTexture::class.java)
+                // Try to find a compatible size
+                previewSize = outputSizes.firstOrNull { 
+                    it.width <= 1920 && it.height <= 1080 && it.width % 2 == 0 && it.height % 2 == 0
+                } ?: outputSizes[0]
+                Log.d(TAG, "Selected preview size: ${previewSize.width}x${previewSize.height}")
             }
             
             // Create preview session if surface is available
@@ -246,8 +414,10 @@ class MainActivity : AppCompatActivity() {
 
         override fun onDisconnected(camera: CameraDevice) {
             Log.w(TAG, "CameraDevice.onDisconnected: Camera disconnected")
+            isCameraStabilized = false
             camera.close()
             cameraDevice = null
+            stopPeriodicCapture()
             Toast.makeText(
                 this@MainActivity,
                 "Camera disconnected",
@@ -300,39 +470,73 @@ class MainActivity : AppCompatActivity() {
 
     private fun createCameraPreviewSession() {
         try {
-            val texture = viewFinder.surfaceTexture
-            texture?.setDefaultBufferSize(previewSize.width, previewSize.height)
+            val texture = viewFinder.surfaceTexture ?: return
+            
+            // Set the default buffer size only once
+            texture.setDefaultBufferSize(previewSize.width, previewSize.height)
+            
             val previewSurface = Surface(texture)
-
-            val captureRequestBuilder = cameraDevice?.createCaptureRequest(
-                CameraDevice.TEMPLATE_PREVIEW
-            )?.apply {
-                addTarget(previewSurface)
-            }
+            val surfaces = mutableListOf(previewSurface)
+            
+            // Close any existing preview ImageReader
+            previewImageReader?.close()
+            
+            // Create new ImageReader for preview
+            previewImageReader = ImageReader.newInstance(
+                previewSize.width,
+                previewSize.height,
+                ImageFormat.YUV_420_888,  // Use YUV format for preview
+                2
+            )
+            
+            previewImageReader?.surface?.let { surfaces.add(it) }
+            // Add still capture ImageReader surface
+            imageReader?.surface?.let { surfaces.add(it) }
 
             cameraDevice?.createCaptureSession(
-                listOf(previewSurface),
+                surfaces,
                 object : CameraCaptureSession.StateCallback() {
                     override fun onConfigured(session: CameraCaptureSession) {
-                        if (cameraDevice == null) return
-
-                        captureSession = session
                         try {
-                            captureRequestBuilder?.let { builder ->
-                                builder.set(
-                                    CaptureRequest.CONTROL_AF_MODE,
-                                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
-                                )
-                                val captureRequest = builder.build()
+                            captureSession = session
+                            
+                            // Create preview request
+                            val previewRequestBuilder = cameraDevice?.createCaptureRequest(
+                                CameraDevice.TEMPLATE_PREVIEW
+                            )?.apply {
+                                addTarget(previewSurface)
+                                
+                                // Basic preview settings
+                                set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO)
+                                set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+                                set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
+                            }
+
+                            previewRequestBuilder?.build()?.let { previewRequest ->
                                 session.setRepeatingRequest(
-                                    captureRequest,
-                                    null,
-                                    cameraExecutor.run { null }
+                                    previewRequest,
+                                    object : CameraCaptureSession.CaptureCallback() {
+                                        override fun onCaptureCompleted(
+                                            session: CameraCaptureSession,
+                                            request: CaptureRequest,
+                                            result: TotalCaptureResult
+                                        ) {
+                                            // Preview frame completed
+                                        }
+                                    },
+                                    mainHandler
                                 )
-                                Log.d(TAG, "Camera preview started")
+                                Log.d(TAG, "Preview started successfully")
+                                
+                                // Add delay before starting capture
+                                mainHandler.postDelayed({
+                                    isCameraStabilized = true
+                                    startPeriodicCapture()
+                                    Log.d(TAG, "Camera stabilized, starting capture")
+                                }, CAMERA_STABILIZATION_DELAY)
                             }
                         } catch (e: CameraAccessException) {
-                            Log.e(TAG, "Failed to start camera preview: ${e.message}")
+                            Log.e(TAG, "Failed to start preview", e)
                         }
                     }
 
@@ -345,7 +549,7 @@ class MainActivity : AppCompatActivity() {
                         ).show()
                     }
                 },
-                null
+                mainHandler
             )
         } catch (e: CameraAccessException) {
             Log.e(TAG, "Failed to create preview session: ${e.message}")
@@ -354,10 +558,19 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         Log.d(TAG, "onDestroy: Cleaning up camera resources")
-        unregisterReceiver(usbReceiver)
+        isCameraStabilized = false
+        stopPeriodicCapture()
+        mainHandler.removeCallbacksAndMessages(null)
+        try {
+            unregisterReceiver(usbReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receiver might not be registered
+        }
         cameraExecutor.shutdown()
         captureSession?.close()
         cameraDevice?.close()
+        imageReader?.close()
+        previewImageReader?.close()
         super.onDestroy()
     }
 }
