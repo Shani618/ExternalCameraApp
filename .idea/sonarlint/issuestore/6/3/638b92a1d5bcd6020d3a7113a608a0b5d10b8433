@@ -1,13 +1,14 @@
 
-dkotlin:S1128	"Remove this unused import.(…ï££ıÿÿÿÿ8ï©ŸœÉ2J$a0c152bf-6e53-4aa4-b3b3-9faa2bc9a1d4
-_kotlin:S1128"Remove this unused import.(„œÊÖ8ï©ŸœÉ2J$07525ffc-390a-4dee-8c01-016c4d023a4f
-dkotlin:S1128"Remove this unused import.(Ôâôüÿÿÿÿ8ï©ŸœÉ2J$b484d9bb-2233-4fcb-9689-228ce299c20b
-^kotlin:S1128!"Remove this unused import.(Éÿ™H8¶ñÀœÉ2J$1fb44e58-1b67-46a0-9d5d-f6617da01ee7
-mkotlin:S1874?"#Deprecated code should not be used.(±İ­Úûÿÿÿÿ8îğœÉ2J$4a8fc431-cbee-4966-8414-e163535da035
-mkotlin:S1874M"#Deprecated code should not be used.(Öœ‚Óıÿÿÿÿ8îğœÉ2J$57e146aa-1c00-4420-85f8-d4d32ffb99f4
-nkotlin:S1874ğ"#Deprecated code should not be used.(”õ†Şùÿÿÿÿ8ÒÕêœÉ2J$74c73d96-5220-4687-aa73-a07c01c01c25
-kotlin:S3776“"RRefactor this method to reduce its Cognitive Complexity from 22 to the 15 allowed.(çş¿ßşÿÿÿÿ8“îğœÉ2J$f1bddf81-4948-4447-9339-8ea8f8c7ac9a
-–kotlin:S6516^"LReplace explicit functional interface implementation with lambda expression.(¨ÚØøÿÿÿÿ8›îğœÉ2J$d24377d2-82eb-4f72-a98c-3a69fc2e3666
-wkotlin:S6518‡",Replace function call with indexed accessor.(ŸÜï†øÿÿÿÿ8İÕêœÉ2J$7ea6a411-aadd-4846-adc0-aadc1c3ed448
-wkotlin:S6518",Replace function call with indexed accessor.(ŸÜï†øÿÿÿÿ8ŸîğœÉ2J$800a5a81-0ff2-468d-bf39-a85a688b9fa7
-rkotlin:S6518¹",Replace function call with indexed accessor.(šù„Ï8ŸîğœÉ2J$570c4a80-901d-422e-97af-b20ee0be819d
+dkotlin:S1128	"Remove this unused import.(…ï££ıÿÿÿÿ8ï©ŸœÉ2J$73b10593-66de-48f8-8847-433bd0c29ddb
+_kotlin:S1128"Remove this unused import.(„œÊÖ8ï©ŸœÉ2J$a98165ac-acdc-4e0d-9fe6-1f398dfdeffe
+dkotlin:S1128"Remove this unused import.(Ôâôüÿÿÿÿ8ï©ŸœÉ2J$f90fe0a5-04b9-4c8c-afaa-5df5f27fe9a1
+dkotlin:S1128"Remove this unused import.(ó§Ñøÿÿÿÿÿ8ÕÌƒÉ2J$d743f066-7581-40fd-b3df-365e9e1db0df
+_kotlin:S1128"Remove this unused import.(‡Ùıõ8ÕÌƒÉ2J$acea0c7c-6e27-4a63-ba95-74d19a700d67
+^kotlin:S1128!"Remove this unused import.(Éÿ™H8¶ñÀœÉ2J$9a8f8daf-d570-488c-81fc-7cd1a6fc41ae
+nkotlin:S1874½"#Deprecated code should not be used.(±İ­Úûÿÿÿÿ8ÚÌƒÉ2J$7699f601-79e5-4a38-8129-38d0e4279581
+nkotlin:S1874Ë"#Deprecated code should not be used.(Öœ‚Óıÿÿÿÿ8ÚÌƒÉ2J$1044d4aa-ce9c-4d52-b63e-1015f83c1b76
+mkotlin:S1874I"#Deprecated code should not be used.(”õ†Şùÿÿÿÿ8ÚÌƒÉ2J$bbe4c38f-d591-4327-8572-813699ac985d
+œkotlin:S3776`"RRefactor this method to reduce its Cognitive Complexity from 19 to the 15 allowed.(çş¿ßşÿÿÿÿ8ÜÌƒÉ2J$1272bd0f-da72-47d4-98bb-2ba4821f66fa
+–kotlin:S6516;"LReplace explicit functional interface implementation with lambda expression.(¨ÚØøÿÿÿÿ8ãÌƒÉ2J$faf5db9f-50dd-4cdb-bc39-d4a9b4577100
+vkotlin:S6518h",Replace function call with indexed accessor.(ŸÜï†øÿÿÿÿ8çÌƒÉ2J$e8c8b513-51db-41d6-8a43-5749430a44e1
+qkotlin:S6518~",Replace function call with indexed accessor.(šù„Ï8çÌƒÉ2J$c4c4ea6b-ec69-4fe6-883d-57d7dc060a25
